@@ -46,7 +46,6 @@ CodeMirror.defineMode("microalg", function (config) {
       if (ch == "(") { type = "open"; return "bracket"; }
       else if (/[+\-=\.']/.test(ch)) return null;
       else if (/\d/.test(ch) && stream.match(/^\d*#/)) return null;
-      else if (ch == "|") return (state.tokenize = inComment)(stream, state);
       else if (ch == ":") { readSym(stream); return "meta"; }
       else if (ch == "\\") { stream.next(); readSym(stream); return "string-2" }
       else return "error";
@@ -68,16 +67,6 @@ CodeMirror.defineMode("microalg", function (config) {
       escaped = !escaped && next == "\\";
     }
     return "string";
-  }
-
-  function inComment(stream, state) {
-    var next, last;
-    while (next = stream.next()) {
-      if (next == "#" && last == "|") { state.tokenize = base; break; }
-      last = next;
-    }
-    type = "ws";
-    return "comment";
   }
 
   return {
