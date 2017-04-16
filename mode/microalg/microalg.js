@@ -34,8 +34,8 @@ CodeMirror.defineMode("microalg", function (config) {
     if (ch == "\\") ch = stream.next();
 
     if (ch == '"') return (state.tokenize = inString)(stream, state);
-    else if (ch == "(") { type = "open"; return "bracket"; }
-    else if (ch == ")" || ch == "]") { type = "close"; return "bracket"; }
+    else if (ch == "(") { type = "open"; return "bracket-" + state.parenDepth; }
+    else if (ch == ")" || ch == "]") { type = "close"; return "bracket-" + (state.parenDepth + 6)%7; }
     else if (ch == ";") { stream.skipToEnd(); type = "ws"; return "comment"; }
     else if (/['`,@]/.test(ch)) return null;
     else if (ch == "|") {
@@ -43,7 +43,7 @@ CodeMirror.defineMode("microalg", function (config) {
       else { stream.skipToEnd(); return "error"; }
     } else if (ch == "#") {
       var ch = stream.next();
-      if (ch == "(") { type = "open"; return "bracket"; }
+      if (ch == "(") { type = "open"; return "bracket-" + state.parenDepth; }
       else if (/[+\-=\.']/.test(ch)) return null;
       else if (/\d/.test(ch) && stream.match(/^\d*#/)) return null;
       else if (ch == ":") { readSym(stream); return "meta"; }
@@ -71,7 +71,7 @@ CodeMirror.defineMode("microalg", function (config) {
 
   return {
     startState: function () {
-      return {ctx: {prev: null, start: 0, indentTo: 0}, lastType: null, tokenize: base};
+      return {ctx: {prev: null, start: 0, indentTo: 0}, lastType: null, tokenize: base, parenDepth: 1};
     },
 
     token: function (stream, state) {
@@ -91,8 +91,14 @@ CodeMirror.defineMode("microalg", function (config) {
         }
         state.lastType = type;
       }
-      if (type == "open") state.ctx = {prev: state.ctx, start: stream.column(), indentTo: null};
-      else if (type == "close") state.ctx = state.ctx.prev || state.ctx;
+      if (type == "open") {
+          state.ctx = {prev: state.ctx, start: stream.column(), indentTo: null};
+          state.parenDepth = (state.parenDepth + 1)%7;
+      } else if (type == "close") {
+          state.ctx = state.ctx.prev || state.ctx;
+          // +6 instead of -1 to avoid negative depth
+          state.parenDepth = (state.parenDepth + 6)%7;
+      }
       return style;
     },
 
